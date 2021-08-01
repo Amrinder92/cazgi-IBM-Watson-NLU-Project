@@ -22,6 +22,63 @@ function getNLUInstance() {
     return naturalLanguageUnderstanding;
 }
 
+var analyzeParamsNLU = {};
+    if (text) {
+        analyzeParamsNLU = {
+            'text': analyzeParams,
+            'features': {
+                'keywords': {
+                    'emotion': emotion,
+                    'sentiment': !emotion,
+                    'limit': 5,
+                }
+            },
+        };
+    } else {
+        analyzeParamsNLU = {
+            'url': analyzeParams,
+            'features': {
+                'keywords': {
+                    'emotion': emotion,
+                    'sentiment': !emotion,
+                    'limit': 5,
+                },
+            },
+        };
+    }
+
+    
+    naturalLanguageUnderstanding.analyze(analyzeParamsNLU).then(data => {
+        res.status(200);
+        if (data.result.keywords) {
+            var dataFilter = data.result.keywords.sort((a, b) => a.count < b.count ? 1 : -1)[0];
+            console.log(dataFilter);
+            if (emotion) {
+                if (dataFilter.emotion) {
+                
+                    res.send(dataFilter.emotion);
+                } else {
+                    res.send('Without data');
+                }
+
+            } else {
+                if (dataFilter.sentiment.label) {
+                   
+                    res.send(dataFilter.sentiment.label);
+                } else {
+                    res.send('Without data');
+                }
+            }
+        } else {
+            res.send('Without data');
+        }
+    }).catch(error => {
+        res.status(500);
+        res.send(error);
+    });
+
+
+
 app.use(express.static('client'))
 
 const cors_app = require('cors');
@@ -33,19 +90,19 @@ app.get("/",(req,res)=>{
 
 app.get("/url/emotion", (req,res) => {
 
-    return res.send({"happy":"90","sad":"10"});
+    getNLUInstance(req.query.url,false,true, res);
 });
 
 app.get("/url/sentiment", (req,res) => {
-    return res.send("url sentiment for "+req.query.url);
+    getNLUInstance(req.query.url,false,false, res);
 });
 
 app.get("/text/emotion", (req,res) => {
-    return res.send({"happy":"10","sad":"90"});
+    getNLUInstance(req.query.text,true,true, res);
 });
 
 app.get("/text/sentiment", (req,res) => {
-    return res.send("text sentiment for "+req.query.text);
+    getNLUInstance(req.query.text,true, false, res);
 });
 
 let server = app.listen(8080, () => {
